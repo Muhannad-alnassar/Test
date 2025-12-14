@@ -1,0 +1,542 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GEA Data Center - Unified System</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              slate: {
+                850: '#151f32',
+                900: '#0f172a',
+                950: '#020617',
+              },
+              primary: {
+                500: '#662483', // GEA Purple
+                600: '#501e6a',
+              },
+              gea: {
+                purple: '#662483',
+                pink: '#9e005d',
+                teal: '#00bda6',
+                orange: '#f36c21',
+                light: '#f9f7fc',
+                card: '#ffffff',
+              }
+            },
+            fontFamily: {
+              sans: ['Segoe UI', 'Tahoma', 'Geneva', 'Verdana', 'sans-serif'],
+            },
+            animation: {
+              'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            }
+          },
+        },
+      }
+    </script>
+
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+      body {
+        transition: background-color 0.3s, color 0.3s;
+      }
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      .dark ::-webkit-scrollbar-track {
+        background: #1e293b; 
+      }
+      .dark ::-webkit-scrollbar-thumb {
+        background: #475569; 
+        border-radius: 4px;
+      }
+      .dark ::-webkit-scrollbar-thumb:hover {
+        background: #64748b; 
+      }
+      
+      /* Light Mode Scrollbar */
+      body:not(.dark) ::-webkit-scrollbar-track {
+        background: #f1f5f9;
+      }
+      body:not(.dark) ::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+      }
+      body:not(.dark) ::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+      }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.33.0",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body class="bg-slate-950 text-slate-200 dark">
+    <div id="root"></div>
+
+    <script type="text/babel" data-presets="typescript,react">
+        const { useState, useEffect, useRef, useMemo } = React;
+
+        // --- ICONS (Consolidated) ---
+        const Icon = ({ path, size = 24, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                {path}
+            </svg>
+        );
+
+        const IconDashboard = (p) => <Icon {...p} path={<><rect width="7" height="9" x="3" y="3" rx="1" /><rect width="7" height="5" x="14" y="3" rx="1" /><rect width="7" height="9" x="14" y="12" rx="1" /><rect width="7" height="5" x="3" y="16" rx="1" /></>} />;
+        const IconClipboardList = (p) => <Icon {...p} path={<><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></>} />;
+        const IconPlusCircle = (p) => <Icon {...p} path={<><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></>} />;
+        const IconSearch = (p) => <Icon {...p} path={<><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></>} />;
+        const IconFilter = (p) => <Icon {...p} path={<><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></>} />;
+        const IconCalendar = (p) => <Icon {...p} path={<><rect width="18" height="18" x="3" y="4" rx="2" ry="2" /><line x1="16" x2="16" y1="2" y2="6" /><line x1="8" x2="8" y1="2" y2="6" /><line x1="3" x2="21" y1="10" y2="10" /></>} />;
+        const IconCheckCircle = (p) => <Icon {...p} path={<><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></>} />;
+        const IconClock = (p) => <Icon {...p} path={<><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>} />;
+        const IconMoreVertical = (p) => <Icon {...p} path={<><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></>} />;
+        const IconArrowRight = (p) => <Icon {...p} path={<><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></>} />;
+        const IconTrash = (p) => <Icon {...p} path={<><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></>} />;
+        const IconChevronLeft = (p) => <Icon {...p} path={<><path d="m15 18-6-6 6-6"/></>} />;
+        const IconChevronRight = (p) => <Icon {...p} path={<><path d="m9 18 6-6-6-6"/></>} />;
+        const IconMapPin = (p) => <Icon {...p} path={<><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></>} />;
+        const IconX = (p) => <Icon {...p} path={<><path d="M18 6 6 18"/><path d="m6 6 18 18"/></>} />;
+        const IconUsers = (p) => <Icon {...p} path={<><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>} />;
+        const IconTicket = (p) => <Icon {...p} path={<><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" /><path d="M13 5v2" /><path d="M13 17v2" /><path d="M13 11v2" /></>} />;
+        const IconBuilding = (p) => <Icon {...p} path={<><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></>} />;
+        const IconFlag = (p) => <Icon {...p} path={<><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" x2="4" y1="22" y2="15"/></>} />;
+        const IconStar = (p) => <Icon {...p} path={<><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></>} />;
+        const IconDownload = (p) => <Icon {...p} path={<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></>} />;
+        const IconImage = (p) => <Icon {...p} path={<><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></>} />;
+        const IconGlobe = (p) => <Icon {...p} path={<><circle cx="12" cy="12" r="10"/><line x1="2" x2="22" y1="12" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></>} />;
+        const IconSparkles = (p) => <Icon {...p} path={<><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /><path d="M5 3v4" /><path d="M9 3v4" /><path d="M3 5h4" /><path d="M3 9h4" /></>} />;
+        const IconSun = (p) => <Icon {...p} path={<><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></>} />;
+        const IconMoon = (p) => <Icon {...p} path={<><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></>} />;
+        const IconClipboardCheck = (p) => <Icon {...p} path={<><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></>} />;
+        const IconVideo = (p) => <Icon {...p} path={<><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></>} />;
+        const IconFileText = (p) => <Icon {...p} path={<><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></>} />;
+        const IconUpload = (p) => <Icon {...p} path={<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></>} />;
+        const IconUser = (p) => <Icon {...p} path={<><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>} />;
+        const IconMenu = (p) => <Icon {...p} path={<><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></>} />;
+        const IconMoreHorizontal = (p) => <Icon {...p} path={<><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></>} />;
+        const IconBell = (p) => <Icon {...p} path={<><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></>} />;
+        const IconLogOut = (p) => <Icon {...p} path={<><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></>} />;
+        const IconChevronDown = (p) => <Icon {...p} path={<><path d="m6 9 6 6 6-6"/></>} />;
+
+        // --- Event Planning Module (Updated) ---
+        const mockPlans = [
+            { id: '1', title: 'مهرجان التمور الدولي', description: 'مهرجان يجمع منتجي التمور في واجهة الرياض', proposer: 'أحمد السالم', date: '2025-11-15', status: 'IDEAS', priority: 'Medium' },
+            { id: '2', title: 'ماراثون الألوان', description: 'سباق جري ترفيهي للعائلات', proposer: 'سارة العلي', date: '2025-12-01', status: 'FEASIBILITY', priority: 'High', estimatedBudget: '2M SAR' },
+            { id: '3', title: 'بطولة الشطرنج الكبرى', description: 'بطولة دولية في بوليفارد سيتي', proposer: 'فهد العتيبي', date: '2025-10-25', status: 'BUDGETING', priority: 'Medium', estimatedBudget: '500K SAR' },
+            { id: '4', title: 'سينما السيارات', description: 'عودة فعالية سينما السيارات في الشتاء', proposer: 'نورة الدوسري', date: '2025-12-15', status: 'APPROVED', priority: 'Low', estimatedBudget: '1.2M SAR' },
+        ];
+
+        const mockRegionalEvents = [
+            { id: 'dec_1', title: 'احتفالات اليوم الوطني الإماراتي', country: 'UAE', city: 'أبوظبي', date: '2025-12-02', type: 'National', description: 'الاحتفال الرسمي باليوم الوطني 54.', targetAudience: 'الجميع', image: 'https://images.unsplash.com/photo-1512453979798-5ea904f8486d?auto=format&fit=crop&q=80&w=1000' },
+            { id: 'dec_2', title: 'مسيرة الاتحاد', country: 'UAE', city: 'أبوظبي', date: '2025-12-03', type: 'Culture', description: 'مسيرة تراثية ضخمة بمشاركة القبائل.', targetAudience: 'العائلات' },
+            { id: 'dec_3', title: 'حفل حسين الجسمي', country: 'UAE', city: 'دبي', date: '2025-12-02', type: 'Concert', description: 'حفل غنائي بمناسبة اليوم الوطني.', targetAudience: 'محبي الطرب' },
+            { id: 'dec_5', title: 'مهرجان شتاء الرياض', country: 'KSA', city: 'الرياض', date: '2025-12-05', type: 'Festival', description: 'فعاليات شتوية خارجية وتساقط ثلوج.', targetAudience: 'العائلات' },
+            { id: 'dec_6', title: 'MDLBEAST Soundstorm', country: 'KSA', city: 'الرياض', date: '2025-12-12', type: 'Concert', description: 'أضخم مهرجان موسيقي في الشرق الأوسط.', targetAudience: 'الشباب' },
+            { id: 'dec_10', title: 'اليوم الوطني البحريني', country: 'BHR', city: 'المنامة', date: '2025-12-16', type: 'National', description: 'احتفالات المملكة بالعيد الوطني.', targetAudience: 'الجميع' },
+        ];
+
+        const EventPlanningModule = () => {
+            const [viewMode, setViewMode] = useState('KANBAN');
+            const [planningList, setPlanningList] = useState(mockPlans);
+            const [selectedCountry, setSelectedCountry] = useState('ALL');
+            const [regionalSearch, setRegionalSearch] = useState('');
+            const [selectedRegionalEvent, setSelectedRegionalEvent] = useState(null);
+
+            const getStatusLabel = (status) => {
+                switch(status) {
+                    case 'IDEAS': return 'أفكار ومقترحات';
+                    case 'FEASIBILITY': return 'دراسة الجدوى';
+                    case 'BUDGETING': return 'الميزانية والموافقات';
+                    case 'APPROVED': return 'معتمد للتنفيذ';
+                }
+            };
+
+            const getCountryFlag = (code) => {
+                const flags = { 'KSA': '🇸🇦', 'UAE': '🇦🇪', 'QAT': '🇶🇦', 'KUW': '🇰🇼', 'BHR': '🇧🇭', 'OMA': '🇴🇲' };
+                return flags[code] || '🏳️';
+            };
+
+            const renderKanbanBoard = () => {
+                const columns = ['IDEAS', 'FEASIBILITY', 'BUDGETING', 'APPROVED'];
+                return (
+                    <div className="flex gap-6 overflow-x-auto pb-4 h-full">
+                        {columns.map(col => (
+                            <div key={col} className="min-w-[300px] w-1/4 flex flex-col h-full bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800/50">
+                                <div className={`p-4 border-b border-slate-200 dark:border-slate-800 rounded-t-2xl flex justify-between items-center ${col === 'APPROVED' ? 'bg-green-50 dark:bg-green-900/10' : ''}`}>
+                                    <h3 className={`font-bold text-sm ${col === 'APPROVED' ? 'text-green-700 dark:text-green-400' : 'text-slate-700 dark:text-slate-300'}`}>{getStatusLabel(col)}</h3>
+                                    <span className="bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs px-2 py-1 rounded-full border border-slate-200 dark:border-slate-700 font-bold shadow-sm">{planningList.filter(p => p.status === col).length}</span>
+                                </div>
+                                <div className="flex-1 p-3 space-y-3 overflow-y-auto custom-scrollbar">
+                                    {planningList.filter(p => p.status === col).map(card => (
+                                        <div key={card.id} className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow cursor-pointer group relative">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <span className={`text-[10px] px-2 py-0.5 rounded border font-bold ${card.priority === 'High' ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-200 dark:border-red-900/30' : card.priority === 'Medium' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 border-orange-200 dark:border-orange-900/30' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-900/30'}`}>{card.priority === 'High' ? 'عالية' : card.priority === 'Medium' ? 'متوسطة' : 'منخفضة'}</span>
+                                                <button className="text-slate-400 hover:text-slate-600 dark:hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"><IconMoreVertical size={16} /></button>
+                                            </div>
+                                            <h4 className="font-bold text-slate-800 dark:text-white mb-1 text-sm">{card.title}</h4>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mb-3">{card.description}</p>
+                                            <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-700 text-xs">
+                                                <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400"><IconCalendar size={12} /> {card.date}</div>
+                                                {card.estimatedBudget && <span className="font-mono font-bold text-slate-700 dark:text-slate-300">{card.estimatedBudget}</span>}
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <button className="w-full py-2 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl text-slate-400 dark:text-slate-500 text-xs hover:border-purple-400 hover:text-purple-500 dark:hover:border-purple-500 dark:hover:text-purple-400 transition-colors flex items-center justify-center gap-2"><IconPlusCircle size={14} /> إضافة بطاقة</button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                );
+            };
+
+            const renderRegionalCalendar = () => {
+                const filteredEvents = mockRegionalEvents.filter(e => {
+                    const matchesSearch = e.title.toLowerCase().includes(regionalSearch.toLowerCase()) || e.city.toLowerCase().includes(regionalSearch.toLowerCase());
+                    const matchesCountry = selectedCountry === 'ALL' || e.country === selectedCountry;
+                    return matchesSearch && matchesCountry;
+                });
+
+                return (
+                    <div className="flex gap-6 h-full">
+                        <div className="w-1/3 flex flex-col gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm">
+                            <div>
+                                <h3 className="font-bold text-slate-800 dark:text-white mb-3">رزنامة الفعاليات الإقليمية</h3>
+                                <div className="relative mb-3">
+                                    <input type="text" placeholder="بحث في الخليج..." value={regionalSearch} onChange={(e) => setRegionalSearch(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg py-2 pr-9 pl-4 text-sm text-slate-800 dark:text-white focus:outline-none focus:border-purple-500" />
+                                    <IconSearch className="absolute right-3 top-2.5 text-slate-400" size={16} />
+                                </div>
+                                <div className="flex gap-2 flex-wrap">
+                                    {['ALL', 'KSA', 'UAE', 'QAT', 'KUW', 'BHR', 'OMA'].map(c => (
+                                        <button key={c} onClick={() => setSelectedCountry(c)} className={`px-3 py-1 text-xs rounded-full border transition-colors ${selectedCountry === c ? 'bg-purple-600 text-white border-purple-600' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-purple-400'}`}>{c === 'ALL' ? 'الكل' : getCountryFlag(c)}</button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-1">
+                                {filteredEvents.map(evt => (
+                                    <div key={evt.id} onClick={() => setSelectedRegionalEvent(evt)} className={`p-3 rounded-lg border cursor-pointer transition-all flex items-start gap-3 hover:shadow-md ${selectedRegionalEvent?.id === evt.id ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-500' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 hover:border-purple-300'}`}>
+                                        <div className="text-2xl pt-1">{getCountryFlag(evt.country)}</div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="font-bold text-slate-800 dark:text-slate-200 text-sm truncate">{evt.title}</div>
+                                            <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-1"><IconMapPin size={10} /> {evt.city} • {evt.date}</div>
+                                            <div className="flex gap-1 mt-2"><span className="text-[10px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-600 px-1.5 py-0.5 rounded text-slate-500 dark:text-slate-400">{evt.type}</span></div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="flex-1 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl relative overflow-hidden flex flex-col shadow-inner">
+                            {selectedRegionalEvent ? (
+                                <>
+                                    <div className="h-48 relative shrink-0">
+                                        <img src={selectedRegionalEvent.image || 'https://images.unsplash.com/photo-1516214104703-d870798883c5?auto=format&fit=crop&q=80&w=1000'} alt={selectedRegionalEvent.title} className="w-full h-full object-cover" />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900 to-transparent"></div>
+                                        <div className="absolute bottom-4 right-4 text-white">
+                                            <div className="flex items-center gap-2 mb-1"><span className="text-2xl">{getCountryFlag(selectedRegionalEvent.country)}</span><span className="text-sm bg-white/20 backdrop-blur-sm px-2 py-0.5 rounded">{selectedRegionalEvent.city}</span></div>
+                                            <h2 className="text-3xl font-bold">{selectedRegionalEvent.title}</h2>
+                                        </div>
+                                        <button onClick={() => setSelectedRegionalEvent(null)} className="absolute top-4 left-4 bg-black/30 hover:bg-black/50 text-white p-2 rounded-full backdrop-blur-sm transition-colors"><IconX size={20} /></button>
+                                    </div>
+                                    <div className="p-6 flex-1 overflow-y-auto custom-scrollbar bg-white dark:bg-slate-950">
+                                        <div className="flex flex-wrap gap-4 mb-6">
+                                            <div className="bg-slate-50 dark:bg-slate-900 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 flex-1 min-w-[150px]"><div className="text-xs text-slate-500 mb-1 flex items-center gap-1"><IconCalendar size={12}/> التاريخ</div><div className="font-bold text-slate-800 dark:text-white">{selectedRegionalEvent.date}</div></div>
+                                            <div className="bg-slate-50 dark:bg-slate-900 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 flex-1 min-w-[150px]"><div className="text-xs text-slate-500 mb-1 flex items-center gap-1"><IconFlag size={12}/> النوع</div><div className="font-bold text-slate-800 dark:text-white">{selectedRegionalEvent.type}</div></div>
+                                            <div className="bg-slate-50 dark:bg-slate-900 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 flex-1 min-w-[150px]"><div className="text-xs text-slate-500 mb-1 flex items-center gap-1"><IconUsers size={12}/> الجمهور المستهدف</div><div className="font-bold text-slate-800 dark:text-white">{selectedRegionalEvent.targetAudience}</div></div>
+                                        </div>
+                                        <h3 className="font-bold text-slate-800 dark:text-white mb-2 flex items-center gap-2"><IconSparkles className="text-purple-500" size={18}/> نبذة عن الفعالية</h3>
+                                        <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-sm mb-6 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-lg border border-slate-200 dark:border-slate-800">{selectedRegionalEvent.description || 'لا يوجد وصف متاح.'}</p>
+                                        <div className="border-t border-slate-200 dark:border-slate-800 pt-6 mt-6">
+                                            <h4 className="font-bold text-slate-800 dark:text-white mb-3 text-sm">تحليل التقاطع والفرص</h4>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div className="p-3 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30 rounded-lg"><div className="font-bold text-red-700 dark:text-red-400 text-xs mb-1">تعارض محتمل</div><p className="text-xs text-slate-600 dark:text-slate-400">يتزامن مع إجازة منتصف الفصل الدراسي، قد يؤثر على السياحة البينية.</p></div>
+                                                <div className="p-3 bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-900/30 rounded-lg"><div className="font-bold text-green-700 dark:text-green-400 text-xs mb-1">فرصة تكامل</div><p className="text-xs text-slate-600 dark:text-slate-400">إمكانية عمل حزم تذاكر مشتركة للسياح الدوليين.</p></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="flex-1 flex flex-col items-center justify-center text-slate-400 dark:text-slate-600 p-8"><IconGlobe size={64} className="mb-4 opacity-50" /><p className="text-lg font-medium text-slate-600 dark:text-slate-400">خريطة الفعاليات الإقليمية</p><p className="text-sm">اختر فعالية من القائمة لعرض التفاصيل وتحليل التقاطعات</p></div>
+                            )}
+                        </div>
+                    </div>
+                );
+            };
+
+            return (
+                <div className="flex flex-col h-full space-y-6" dir="rtl">
+                    <div className="flex flex-col md:flex-row justify-between items-center bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-lg">
+                        <div><h2 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2"><IconClipboardList className="text-orange-500" />تخطيط الفعاليات</h2><p className="text-slate-500 dark:text-slate-400 text-sm mt-1">إدارة دورة حياة الأفكار ورصد الفعاليات الإقليمية المنافسة</p></div>
+                        <div className="flex items-center gap-3 mt-4 md:mt-0">
+                            <div className="bg-slate-100 dark:bg-slate-950 p-1 rounded-lg border border-slate-200 dark:border-slate-800 flex">
+                                <button onClick={() => setViewMode('KANBAN')} className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${viewMode === 'KANBAN' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}>داخلي (Kanban)</button>
+                                <button onClick={() => setViewMode('REGIONAL')} className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${viewMode === 'REGIONAL' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}>إقليمي (Regional)</button>
+                            </div>
+                            {viewMode === 'KANBAN' && <button className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-bold shadow-lg flex items-center gap-2 transition-colors"><IconPlusCircle size={20} /> فكرة جديدة</button>}
+                        </div>
+                    </div>
+                    <div className="flex-1 overflow-hidden min-h-0">
+                        {viewMode === 'KANBAN' ? renderKanbanBoard() : renderRegionalCalendar()}
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Field Evaluation Module (Updated) ---
+        const mockFieldItems = [
+            { id: '3', title: 'تغطية ميدانية - منطقة البوليفارد', type: 'Image', evaluationType: 'Field', submittedBy: 'فريق البث المباشر', date: '2025-11-02', status: 'Pending', previewUrl: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&q=80&w=600', images: ['https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&q=80&w=600'], description: 'صور توثق تجربة الزوار في اليوم الأول للافتتاح، للتحقق من جودة الإضاءة وتفاعل الجمهور.', comments: [] },
+            { id: '4', title: 'تقرير جودة الهوية البصرية بالموقع', type: 'Copy', evaluationType: 'Field', submittedBy: 'مشرف المنطقة', date: '2025-11-03', status: 'Rejected', notes: 'الألوان المستخدمة في اللوحات الإرشادية غير مطابقة للدليل.', description: 'تقرير يوضح مخالفات في تطبيق الهوية البصرية في الممرات الرئيسية.', comments: [] },
+        ];
+
+        const FieldEvaluationModule = () => {
+            const [items, setItems] = useState(mockFieldItems);
+            const [selectedItem, setSelectedItem] = useState(null);
+            const [activeImage, setActiveImage] = useState('');
+            const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+            const [newItemData, setNewItemData] = useState({ title: '', type: 'Image', evaluationType: 'Field', submittedBy: 'المراقب الميداني', description: '', images: [] });
+
+            const handleApprove = (id) => {
+                const update = (prev) => prev.map(item => item.id === id ? { ...item, status: 'Approved', rating: 5 } : item);
+                setItems(update);
+                if (selectedItem && selectedItem.id === id) setSelectedItem({ ...selectedItem, status: 'Approved', rating: 5 });
+            };
+
+            const handleReject = (id) => {
+                const update = (prev) => prev.map(item => item.id === id ? { ...item, status: 'Rejected' } : item);
+                setItems(update);
+                if (selectedItem && selectedItem.id === id) setSelectedItem({ ...selectedItem, status: 'Rejected' });
+            };
+
+            const handleImageUpload = (e) => {
+                if (e.target.files) {
+                    const files = Array.from(e.target.files);
+                    const promises = files.map(file => new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = (ev) => resolve(ev.target.result);
+                        reader.readAsDataURL(file);
+                    }));
+                    Promise.all(promises).then(base64Images => setNewItemData(prev => ({ ...prev, images: [...(prev.images || []), ...base64Images] })));
+                }
+            };
+
+            const handleAdd = (e) => {
+                e.preventDefault();
+                const newItem = { id: Date.now().toString(), title: newItemData.title || 'تقرير ميداني جديد', type: 'Image', evaluationType: 'Field', submittedBy: newItemData.submittedBy || 'المراقب الميداني', date: new Date().toISOString().split('T')[0], status: 'Pending', description: newItemData.description, comments: [], previewUrl: newItemData.images && newItemData.images.length > 0 ? newItemData.images[0] : '', images: newItemData.images || [] };
+                setItems([newItem, ...items]);
+                setIsAddModalOpen(false);
+                setNewItemData({ title: '', type: 'Image', evaluationType: 'Field', submittedBy: 'المراقب الميداني', description: '', images: [] });
+            };
+
+            const getTypeIcon = (type) => {
+                switch(type) {
+                    case 'Video': return <IconVideo size={18} className="text-red-400" />;
+                    case 'Image': return <IconImage size={18} className="text-blue-400" />;
+                    default: return <IconFileText size={18} className="text-orange-400" />;
+                }
+            };
+
+            const getStatusBadge = (status) => {
+                switch(status) {
+                    case 'Approved': return <span className="bg-green-500/10 text-green-600 dark:text-green-400 px-2 py-1 rounded text-xs border border-green-500/20">معتمد</span>;
+                    case 'Rejected': return <span className="bg-red-500/10 text-red-600 dark:text-red-400 px-2 py-1 rounded text-xs border border-red-500/20">مرفوض</span>;
+                    default: return <span className="bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 px-2 py-1 rounded text-xs border border-yellow-500/20">قيد المراجعة</span>;
+                }
+            };
+
+            if (selectedItem) {
+                const displayImages = selectedItem.images && selectedItem.images.length > 0 ? selectedItem.images : selectedItem.previewUrl ? [selectedItem.previewUrl] : [];
+                return (
+                    <div className="flex flex-col h-full space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300" dir="rtl">
+                        <div className="flex items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-lg">
+                            <button onClick={() => setSelectedItem(null)} className="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-500 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white transition-colors border border-slate-200 dark:border-slate-700"><IconX size={20} /></button>
+                            <div className="h-8 w-px bg-slate-200 dark:bg-slate-700 mx-2"></div>
+                            <div>
+                                <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-3">{selectedItem.title} {getStatusBadge(selectedItem.status)}</h2>
+                                <span className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-2 mt-1"><span className="px-2 py-0.5 rounded text-[10px] border bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20">تقييم ميداني</span>{getTypeIcon(selectedItem.type)}<span>بواسطة: {selectedItem.submittedBy}</span></span>
+                            </div>
+                            <div className="mr-auto flex gap-2">
+                                {selectedItem.status === 'Pending' && (
+                                    <><button onClick={() => handleApprove(selectedItem.id)} className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-bold shadow-lg flex items-center gap-2"><IconCheckCircle size={18} /> اعتماد</button><button onClick={() => handleReject(selectedItem.id)} className="bg-white dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 px-4 py-2 rounded-lg font-bold border border-slate-200 dark:border-slate-700 hover:border-red-500 flex items-center gap-2"><IconX size={18} /> رفض</button></>
+                                )}
+                            </div>
+                        </div>
+                        <div className="flex-1 overflow-y-auto custom-scrollbar p-1">
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
+                                <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-lg flex flex-col">
+                                    <div className="flex-1 bg-slate-100 dark:bg-black flex items-center justify-center relative min-h-[400px]">{activeImage || (displayImages.length > 0 && setActiveImage(displayImages[0])) ? <img src={activeImage || displayImages[0]} className="w-full h-full object-contain" alt="Preview" /> : <IconFileText size={64} className="text-slate-400 dark:text-slate-700" />}</div>
+                                    {displayImages.length > 1 && <div className="p-4 bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex gap-3 overflow-x-auto custom-scrollbar">{displayImages.map((img, idx) => <div key={idx} onClick={() => setActiveImage(img)} className={`w-20 h-16 rounded-lg overflow-hidden border-2 cursor-pointer shrink-0 transition-all ${activeImage === img ? 'border-orange-500 opacity-100' : 'border-slate-200 dark:border-slate-800 opacity-50 hover:opacity-100'}`}><img src={img} className="w-full h-full object-cover" alt="" /></div>)}</div>}
+                                </div>
+                                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-lg flex flex-col">
+                                    <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">تفاصيل التقرير</h3>
+                                    <div className="bg-slate-50 dark:bg-slate-950/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800 mb-6 flex-1"><h4 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">الوصف والملاحظات</h4><p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed whitespace-pre-wrap">{selectedItem.description || 'لا يوجد وصف.'}</p></div>
+                                    {selectedItem.notes && <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 p-4 rounded-lg mb-6"><h4 className="text-red-600 dark:text-red-400 font-bold text-sm mb-1 flex items-center gap-2"><IconX size={14} /> ملاحظات الرفض</h4><p className="text-red-700 dark:text-red-200 text-sm">{selectedItem.notes}</p></div>}
+                                    <div className="text-xs text-slate-500 border-t border-slate-200 dark:border-slate-800 pt-4 mt-auto">تم الرفع بتاريخ: <span className="font-mono text-slate-700 dark:text-slate-400">{selectedItem.date}</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="flex flex-col h-full space-y-6" dir="rtl">
+                    <div className="flex flex-col md:flex-row justify-between items-center bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-lg">
+                        <div><h2 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2"><IconClipboardCheck className="text-orange-500" /> تقييم ميداني</h2><p className="text-slate-500 dark:text-slate-400 text-sm mt-1">متابعة تقارير الجودة الميدانية وتقييم الأداء على أرض الواقع</p></div>
+                        <div className="flex gap-3 mt-4 md:mt-0"><button onClick={() => setIsAddModalOpen(true)} className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg font-bold shadow-lg flex items-center gap-2 transition-colors"><IconPlusCircle size={18} /> رفع تقرير ميداني</button></div>
+                    </div>
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-lg flex-1 overflow-y-auto custom-scrollbar">
+                        <table className="w-full text-right text-sm">
+                            <thead className="bg-slate-50 dark:bg-slate-950 text-slate-500 dark:text-slate-400 sticky top-0 z-10"><tr><th className="p-4 font-medium">العنوان</th><th className="p-4 font-medium">النوع</th><th className="p-4 font-medium">المرسل</th><th className="p-4 font-medium">التاريخ</th><th className="p-4 font-medium">الحالة</th><th className="p-4 font-medium">إجراءات</th></tr></thead>
+                            <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                                {items.map(item => (
+                                    <tr key={item.id} onClick={() => {setSelectedItem(item); setActiveImage('');}} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group cursor-pointer">
+                                        <td className="p-4"><div className="flex items-center gap-3"><div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 border border-slate-200 dark:border-slate-700 flex items-center justify-center bg-slate-100 dark:bg-slate-800">{item.previewUrl ? <img src={item.previewUrl} className="w-full h-full object-cover" alt="" /> : <IconFileText className="text-slate-400 dark:text-slate-500" />}</div><div><div className="font-bold text-slate-800 dark:text-white">{item.title}</div></div></div></td>
+                                        <td className="p-4"><div className="flex items-center gap-2 text-slate-600 dark:text-slate-300">{getTypeIcon(item.type)}<span>{item.type === 'Copy' ? 'نصوص' : item.type === 'Image' ? 'صور' : 'فيديو'}</span></div></td>
+                                        <td className="p-4 text-slate-500 dark:text-slate-400">{item.submittedBy}</td>
+                                        <td className="p-4 text-slate-500 dark:text-slate-400 font-mono text-xs">{item.date}</td>
+                                        <td className="p-4">{getStatusBadge(item.status)}</td>
+                                        <td className="p-4" onClick={e => e.stopPropagation()}><div className="flex gap-2"><button onClick={() => handleApprove(item.id)} disabled={item.status === 'Approved'} className="p-1.5 bg-green-500/10 hover:bg-green-500/20 text-green-600 dark:text-green-400 rounded-lg disabled:opacity-30 border border-green-500/20"><IconCheckCircle size={18} /></button><button onClick={() => handleReject(item.id)} disabled={item.status === 'Rejected'} className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 rounded-lg disabled:opacity-30 border border-red-500/20"><IconX size={18} /></button></div></td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    {isAddModalOpen && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in zoom-in duration-200">
+                            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh]">
+                                <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
+                                    <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2"><IconPlusCircle className="text-purple-500" /> رفع تقرير ميداني جديد</h3>
+                                    <button onClick={() => setIsAddModalOpen(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white"><IconX size={24} /></button>
+                                </div>
+                                <form onSubmit={handleAdd} className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-4">
+                                    <div><label className="block text-sm text-slate-500 dark:text-slate-400 mb-2">عنوان التقرير</label><input type="text" required className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg p-3 text-slate-900 dark:text-white focus:border-purple-500 outline-none" value={newItemData.title} onChange={e => setNewItemData({...newItemData, title: e.target.value})} placeholder="مثال: صور توثيقية لمنطقة A" /></div>
+                                    <div><label className="block text-sm text-slate-500 dark:text-slate-400 mb-2">الوصف</label><textarea className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg p-3 text-slate-900 dark:text-white focus:border-purple-500 outline-none h-24 resize-none" value={newItemData.description} onChange={e => setNewItemData({...newItemData, description: e.target.value})}></textarea></div>
+                                    <div><label className="block text-sm text-slate-500 dark:text-slate-400 mb-2">الوسائط (صور/فيديو)</label><div className="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-6 flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors cursor-pointer relative group"><input type="file" multiple accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleImageUpload} /><IconUpload className="text-purple-500 mb-2" size={32} /><p className="text-sm text-slate-600 dark:text-slate-300 font-medium">ارفق الصور هنا</p></div>{newItemData.images && newItemData.images.length > 0 && <div className="grid grid-cols-4 gap-2 mt-4">{newItemData.images.map((img, idx) => <div key={idx} className="relative group/img aspect-square"><img src={img} className="w-full h-full object-cover rounded-lg border border-slate-200 dark:border-slate-700" alt="upload" /><button type="button" onClick={() => {const ni = [...newItemData.images]; ni.splice(idx,1); setNewItemData({...newItemData, images: ni})}} className="absolute -top-1.5 -right-1.5 bg-red-500 text-white p-0.5 rounded-full opacity-0 group-hover/img:opacity-100 transition-opacity"><IconX size={12} /></button></div>)}</div>}</div>
+                                    <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3"><button type="button" onClick={() => setIsAddModalOpen(false)} className="px-4 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">إلغاء</button><button type="submit" className="px-6 py-2.5 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-bold shadow-lg">حفظ وإرسال</button></div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // --- MAIN APP ---
+        const App = () => {
+            const [currentView, setCurrentView] = useState('DASHBOARD');
+            const [theme, setTheme] = useState('dark');
+            const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+            // Effect to handle theme switching
+            useEffect(() => {
+                const root = document.documentElement;
+                const body = document.body;
+                if (theme === 'light') {
+                    root.classList.remove('dark');
+                    body.classList.remove('bg-slate-950', 'text-slate-200');
+                    body.classList.add('bg-gray-50', 'text-slate-900');
+                } else {
+                    root.classList.add('dark');
+                    body.classList.remove('bg-gray-50', 'text-slate-900');
+                    body.classList.add('bg-slate-950', 'text-slate-200');
+                }
+            }, [theme]);
+
+            const renderContent = () => {
+                switch(currentView) {
+                    case 'PLANNING': return <EventPlanningModule />;
+                    case 'FIELD_EVAL': return <FieldEvaluationModule />;
+                    default: 
+                        return (
+                            <div className="flex flex-col items-center justify-center h-full text-center p-8">
+                                <h1 className="text-4xl font-bold text-primary-500 mb-4">مرحباً بك في مركز البيانات الموحد</h1>
+                                <p className="text-slate-500 dark:text-slate-400 max-w-lg mb-8">اختر من القائمة الجانبية للوصول إلى أدوات تخطيط الفعاليات والتقييم الميداني.</p>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <button onClick={() => setCurrentView('PLANNING')} className="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl hover:border-primary-500 transition-colors shadow-lg">
+                                        <IconClipboardList size={40} className="mx-auto mb-2 text-orange-500" />
+                                        <h3 className="font-bold text-slate-800 dark:text-white">تخطيط الفعاليات</h3>
+                                    </button>
+                                    <button onClick={() => setCurrentView('FIELD_EVAL')} className="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl hover:border-primary-500 transition-colors shadow-lg">
+                                        <IconClipboardCheck size={40} className="mx-auto mb-2 text-green-500" />
+                                        <h3 className="font-bold text-slate-800 dark:text-white">التقييم الميداني</h3>
+                                    </button>
+                                </div>
+                            </div>
+                        );
+                }
+            };
+
+            return (
+                <div className="flex h-screen overflow-hidden" dir="rtl">
+                    {/* Sidebar */}
+                    <aside className={`border-l flex flex-col transition-all duration-300 ${isSidebarOpen ? 'w-64' : 'w-20'} bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 z-20`}>
+                        <div className="p-4 flex items-center justify-center border-b border-slate-100 dark:border-slate-800 mb-4">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/1/13/GEA_Logo.svg" alt="GEA" className="h-12 object-contain" />
+                        </div>
+                        <nav className="flex-1 space-y-1 px-2">
+                            <button onClick={() => setCurrentView('DASHBOARD')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all ${currentView === 'DASHBOARD' ? 'bg-primary-600 text-white' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+                                <IconDashboard size={20} /> <span className={!isSidebarOpen ? 'hidden' : ''}>الرئيسية</span>
+                            </button>
+                            <button onClick={() => setCurrentView('PLANNING')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all ${currentView === 'PLANNING' ? 'bg-primary-600 text-white' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+                                <IconClipboardList size={20} /> <span className={!isSidebarOpen ? 'hidden' : ''}>تخطيط الفعاليات</span>
+                            </button>
+                            <button onClick={() => setCurrentView('FIELD_EVAL')} className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all ${currentView === 'FIELD_EVAL' ? 'bg-primary-600 text-white' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+                                <IconClipboardCheck size={20} /> <span className={!isSidebarOpen ? 'hidden' : ''}>التقييم الميداني</span>
+                            </button>
+                        </nav>
+                        <div className="p-4 border-t border-slate-100 dark:border-slate-800">
+                            <button onClick={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')} className="w-full flex items-center justify-center gap-2 p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                                {theme === 'dark' ? <><IconSun size={18} /><span className={!isSidebarOpen ? 'hidden' : ''}>الوضع الفاتح</span></> : <><IconMoon size={18} /><span className={!isSidebarOpen ? 'hidden' : ''}>الوضع الداكن</span></>}
+                            </button>
+                        </div>
+                    </aside>
+
+                    {/* Main Content */}
+                    <main className="flex-1 flex flex-col h-full relative overflow-hidden bg-slate-50 dark:bg-slate-950 transition-colors">
+                        <header className="h-16 flex items-center justify-between px-6 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shrink-0">
+                            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="text-slate-500 hover:text-slate-700 dark:hover:text-white"><IconMenu size={24} /></button>
+                            <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+                                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> النظام متصل
+                                </div>
+                                <button className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-500"><IconUser size={16} /></button>
+                            </div>
+                        </header>
+                        <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
+                            {renderContent()}
+                        </div>
+                    </main>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>
